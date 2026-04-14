@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>KOPL Inventory</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F4F1EB;--card:#fff;--border:#E0DCD4;--text:#1A1A18;--t2:#7A756D;
+  --navy:#1C3673;--red:#CC2200;--green:#0E7C4A;--amber:#C47D09;
+  --bl:#E8EDF5;--rl:#FDEEEA;--gl:#E4F3EC;--al:#FDF3E3;
+  --r:10px;--sh:0 1px 3px rgba(0,0,0,.05);
+  --font:'Outfit',system-ui,sans-serif;--mono:'IBM Plex Mono',monospace;
+}
+html{height:100%;-webkit-text-size-adjust:100%}
+body{font-family:var(--font);color:var(--text);background:var(--bg);min-height:100%;padding:12px 12px 96px;max-width:960px;margin:0 auto}
+input,select,textarea,button{font-family:var(--font);font-size:14px}
+input:focus,select:focus{outline:2px solid var(--navy);outline-offset:-1px}
+::selection{background:var(--navy);color:#fff}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh)}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:9px 14px;border-radius:8px;border:none;cursor:pointer;font-weight:600;font-size:13px;transition:all .12s;-webkit-tap-highlight-color:transparent}
+.btn:active{transform:scale(.97)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.bp{background:var(--navy);color:#fff}.bp:hover:not(:disabled){background:#15295a}
+.bd{background:var(--red);color:#fff}.bd:hover:not(:disabled){background:#a01b00}
+.bs{background:var(--green);color:#fff}.bs:hover:not(:disabled){background:#0a5e38}
+.bg{background:transparent;color:var(--t2);border:1px solid var(--border)}.bg:hover:not(:disabled){background:var(--bg);color:var(--text)}
+.inp{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--card);color:var(--text)}
+.inp:hover{border-color:#bbb}
+.lbl{font-size:11px;font-weight:700;color:var(--t2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:16px;font-size:11px;font-weight:600}
+
+.tabbar{position:fixed;bottom:8px;left:8px;right:8px;z-index:100;max-width:960px;margin:0 auto;
+  display:flex;gap:2px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:4px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:11px;border:none;cursor:pointer;font-size:10px;font-weight:700;color:var(--t2);background:transparent;transition:all .12s;letter-spacing:.3px;-webkit-tap-highlight-color:transparent}
+.tab:hover{background:var(--bg)}.tab.on{background:var(--navy);color:#fff}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border-bottom:2px solid var(--border);white-space:nowrap}
+td{padding:8px 8px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}
+.sn{font-family:var(--mono);font-weight:500;font-size:13px}
+.neg{color:var(--red)}.zero{color:var(--t2);opacity:.35}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--card);border-radius:14px;max-width:620px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,.18);padding:24px}
+
+.toast{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:600;padding:9px 18px;border-radius:10px;color:#fff;font-weight:600;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.15);white-space:nowrap;max-width:92vw;animation:toastIn .25s ease-out}
+@keyframes toastIn{from{transform:translateX(-50%) translateY(-20px);opacity:0}to{transform:translateX(-50%);opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.fu{animation:fadeUp .25s ease-out both}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.g4{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.flex{display:flex}.gap4{gap:4px}.gap6{gap:6px}.gap8{gap:8px}.gap10{gap:10px}
+.col{flex-direction:column}.wrap{flex-wrap:wrap}
+.ac{align-items:center}.jb{justify-content:space-between}
+.f1{flex:1}.w100{width:100%}.tac{text-align:center}
+.mb6{margin-bottom:6px}.mb8{margin-bottom:8px}.mb10{margin-bottom:10px}.mb12{margin-bottom:12px}.mb14{margin-bottom:14px}
+.p12{padding:12px}.p14{padding:14px}.p16{padding:16px}
+.ova{overflow-x:auto}
+.sticky{position:sticky;left:0;background:var(--card);z-index:1}
+
+.line-item{background:var(--bg);border-radius:8px;padding:10px;margin-bottom:7px;border:1px solid var(--border)}
+.icon-btn{background:none;border:none;cursor:pointer;padding:2px;display:inline-flex;-webkit-tap-highlight-color:transparent}
+
+@media(max-width:500px){
+  .hsm{display:none!important}
+  table{font-size:12px}
+  th,td{padding:6px 5px}
+  .g2{grid-template-columns:1fr}
+  .g2s{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// KOPL INVENTORY — Pure JS Single-File App
+// ═══════════════════════════════════════════════════════════
+
+const $ = (s, p) => (p||document).querySelector(s);
+const $$ = (s, p) => [...(p||document).querySelectorAll(s)];
+const el = (tag, attrs={}, ...children) => {
+  const e = document.createElement(tag);
+  Object.entries(attrs).forEach(([k,v]) => {
+    if(k==='style'&&typeof v==='object') Object.assign(e.style,v);
+    else if(k.startsWith('on')&&typeof v==='function') e.addEventListener(k.slice(2).toLowerCase(),v);
+    else if(k==='class') e.className=v;
+    else if(k==='html') e.innerHTML=v;
+    else e.setAttribute(k,v);
+  });
+  children.flat(Infinity).forEach(c => {
+    if(c==null||c===false) return;
+    e.appendChild(typeof c==='string'||typeof c==='number' ? document.createTextNode(String(c)) : c);
+  });
+  return e;
+};
+
+// ─── SVG Icon ───
+function icon(name,size=18,color){
+  const paths={
+    plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+    minus:'<line x1="5" y1="12" x2="19" y2="12"/>',
+    download:'<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+    warehouse:'<path d="M3 21V8l9-5 9 5v13"/><path d="M9 21V13h6v8"/>',
+    box:'<path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>',
+    history:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    edit:'<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>',
+    trash:'<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>',
+    check:'<polyline points="20 6 9 17 4 12"/>',
+    x:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+    transfer:'<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/>',
+    settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>',
+    alert:'<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    sync:'<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>',
+    link:'<path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>',
+    wifi:'<path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>',
+    wifiOff:'<line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0119 12.55"/><path d="M5 12.55a10.94 10.94 0 015.17-2.39"/><line x1="12" y1="20" x2="12.01" y2="20"/>',
+  };
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color||'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;vertical-align:middle">${paths[name]||''}</svg>`;
+}
+
+// ─── Utils ───
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const fmt = n => n===0?'0':Number(n).toLocaleString('en-IN',{maximumFractionDigits:2});
+const today = () => new Date().toISOString().slice(0,10);
+
+// ─── Local Storage ───
+const ls = {
+  get:(k,fb)=>{ try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb}catch{return fb} },
+  set:(k,v)=>{ try{localStorage.setItem(k,JSON.stringify(v))}catch(e){console.error(e)} }
+};
+
+// ─── Defaults ───
+const DEF_WH=[{id:'w1',name:'Mathura Godown',color:'#1C3673'},{id:'w2',name:'Kandla Port Store',color:'#CC2200'},{id:'w3',name:'Agra Depot',color:'#0E7C4A'}];
+const DEF_ITEMS=[{id:'i1',name:'Hexane',unit:'kg'},{id:'i2',name:'IPA',unit:'kg'},{id:'i3',name:'Methanol',unit:'kg'},{id:'i4',name:'Butyl Acetate',unit:'kg'},{id:'i5',name:'Acetone',unit:'kg'},{id:'i6',name:'Ethyl Acetate',unit:'kg'},{id:'i7',name:'Cyclohexanone',unit:'kg'},{id:'i8',name:'Toluene',unit:'kg'},{id:'i9',name:'MEK',unit:'kg'},{id:'i10',name:'MTO',unit:'kg'}];
+
+// ─── State ───
+let state = {
+  wh: ls.get('kopl-wh', DEF_WH),
+  items: ls.get('kopl-items', DEF_ITEMS),
+  txns: ls.get('kopl-txns', []),
+  url: ls.get('kopl-url', ''),
+  user: ls.get('kopl-user', ''),
+  tab: 'dashboard',
+  connected: false,
+  syncing: false,
+};
+
+function save(key, val) {
+  state[key] = val;
+  const lsKey = {wh:'kopl-wh',items:'kopl-items',txns:'kopl-txns',url:'kopl-url',user:'kopl-user'}[key];
+  if(lsKey) ls.set(lsKey, val);
+}
+
+function getStock() {
+  const s={};
+  state.wh.forEach(w=>{s[w.id]={};state.items.forEach(i=>{s[w.id][i.id]=0;});});
+  state.txns.forEach(t=>{
+    if(!s[t.whId]) return;
+    if(t.type==='in') s[t.whId][t.itemId]=(s[t.whId][t.itemId]||0)+t.qty;
+    if(t.type==='out') s[t.whId][t.itemId]=(s[t.whId][t.itemId]||0)-t.qty;
+    if(t.type==='transfer'){
+      s[t.whId][t.itemId]=(s[t.whId][t.itemId]||0)-t.qty;
+      if(s[t.toWhId]) s[t.toWhId][t.itemId]=(s[t.toWhId][t.itemId]||0)+t.qty;
+    }
+  });
+  return s;
+}
+
+// ─── API ───
+async function apiGet(action='getAll'){
+  if(!state.url) return null;
+  try{const r=await fetch(state.url+'?action='+action);if(!r.ok)throw 0;return await r.json();}catch{return null;}
+}
+async function apiPost(body){
+  if(!state.url) return null;
+  try{const r=await fetch(state.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...body,enteredBy:state.user})});if(!r.ok)throw 0;return await r.json();}catch{return null;}
+}
+
+async function syncFromSheet(){
+  if(!state.url) return;
+  state.syncing=true; render();
+  const data=await apiGet('getAll');
+  if(data&&data.success){
+    if(data.warehouses?.length){save('wh',data.warehouses);}
+    if(data.items?.length){save('items',data.items);}
+    if(data.transactions){save('txns',data.transactions);}
+    state.connected=true;
+  } else { state.connected=false; }
+  state.syncing=false; render();
+}
+
+// ─── Toast ───
+let toastTimer;
+function toast(msg,type='success'){
+  const existing=$('.toast');if(existing)existing.remove();
+  const t=el('div',{class:'toast',style:{background:type==='success'?'var(--green)':type==='error'?'var(--red)':'var(--navy)'}},msg);
+  document.body.appendChild(t);
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.remove(),3000);
+}
+
+// ─── CSV ───
+function dlCSV(h,rows,fn){
+  const csv=[h.join(','),...rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(','))].join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=fn;a.click();
+}
+
+// ─── Name lookup ───
+const wName=id=>state.wh.find(w=>w.id===id)?.name||'—';
+const iName=id=>state.items.find(i=>i.id===id)?.name||'—';
+const iUnit=id=>state.items.find(i=>i.id===id)?.unit||'kg';
+
+// ═══════════════════════════════════════════
+// RENDER ENGINE
+// ═══════════════════════════════════════════
+function render(){
+  const app=$('#app');
+  app.innerHTML='';
+
+  // Check if first time - show setup
+  if(!state.url && state.txns.length===0 && !state._skipSetup){
+    app.appendChild(renderSetup()); return;
+  }
+
+  // Header
+  app.appendChild(renderHeader());
+  // Content
+  const content=el('div',{class:'fu',style:{animationDelay:'.03s'}});
+  if(state.tab==='dashboard') content.appendChild(renderDashboard());
+  else if(state.tab==='entry') content.appendChild(renderEntry());
+  else if(state.tab==='transfer') content.appendChild(renderTransfer());
+  else if(state.tab==='history') content.appendChild(renderHistory());
+  else if(state.tab==='manage') content.appendChild(renderManage());
+  app.appendChild(content);
+  // Tab bar
+  app.appendChild(renderTabBar());
+}
+
+function renderHeader(){
+  const statusIcon=state.connected?icon('wifi',11,'var(--green)'):icon('wifiOff',11,'var(--t2)');
+  const statusText=state.connected?'Synced':state.url?'Offline':'Local only';
+  
+  return el('div',{class:'flex ac jb mb14 wrap gap8',style:{animation:'fadeUp .25s ease-out'}},
+    el('div',{},
+      el('div',{style:{fontSize:'20px',fontWeight:800,color:'var(--navy)',letterSpacing:'-.5px'},html:`KOPL <span style="font-weight:400;color:var(--t2);font-size:13px">Inventory</span>`}),
+      el('div',{style:{fontSize:'11px',color:'var(--t2)'},html:`${statusIcon} ${statusText}${state.user?' · '+state.user:''}`})
+    ),
+    el('div',{class:'flex gap6 wrap'},
+      el('button',{class:'btn bg',style:{fontSize:'11px'},onClick:()=>{if(!state.url){showSetupModal();return;}syncFromSheet().then(()=>toast('Synced!'))}},el('span',{html:icon('sync',13)}),state.syncing?'Syncing...':'Sync'),
+      el('button',{class:'btn bg',style:{fontSize:'11px'},onClick:showSetupModal},el('span',{html:icon('link',13)}),'Connect'),
+      el('button',{class:'btn bg',style:{fontSize:'11px'},onClick:()=>{
+        const stock=getStock();
+        const h=['Item','Unit',...state.wh.map(w=>w.name),'Total'];
+        const r=state.items.map(i=>{const v=state.wh.map(w=>stock[w.id]?.[i.id]||0);return[i.name,i.unit,...v,v.reduce((a,b)=>a+b,0)];});
+        dlCSV(h,r,`KOPL_Stock_${today()}.csv`);toast('CSV downloaded');
+      }},el('span',{html:icon('download',13)}),'CSV')
+    )
+  );
+}
+
+function renderTabBar(){
+  const tabs=[{id:'dashboard',l:'Stock',i:'box'},{id:'entry',l:'In / Out',i:'plus'},{id:'transfer',l:'Move',i:'transfer'},{id:'history',l:'Log',i:'history'},{id:'manage',l:'Setup',i:'settings'}];
+  const bar=el('div',{class:'tabbar'});
+  tabs.forEach(t=>{
+    bar.appendChild(el('button',{class:`tab ${state.tab===t.id?'on':''}`,onClick:()=>{state.tab=t.id;render();}},
+      el('span',{html:icon(t.i,16)}),t.l
+    ));
+  });
+  return bar;
+}
+
+// ═══════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════
+function renderDashboard(){
+  const stock=getStock();
+  const todayN=state.txns.filter(t=>t.date===today()).length;
+  const low=state.items.filter(i=>{const tot=state.wh.reduce((s,w)=>s+(stock[w.id]?.[i.id]||0),0);return tot>0&&tot<500;});
+
+  const wrap=el('div',{class:'flex col',style:{gap:'12px'}});
+
+  // Summary cards
+  const cards=el('div',{class:'g4'});
+  [{l:'Warehouses',v:state.wh.length,c:'var(--navy)'},{l:'Items',v:state.items.length,c:'var(--green)'},{l:'Today',v:todayN,c:'var(--amber)'},{l:'Low Stock',v:low.length,c:'var(--red)'}].forEach(c=>{
+    cards.appendChild(el('div',{class:'card',style:{padding:'10px 12px'}},
+      el('div',{style:{fontSize:'10px',fontWeight:700,color:c.c,textTransform:'uppercase',letterSpacing:'.4px'}},c.l),
+      el('div',{style:{fontSize:'26px',fontWeight:800,color:c.c,fontFamily:'var(--mono)'}},String(c.v))
+    ));
+  });
+  wrap.appendChild(cards);
+
+  // Low stock
+  if(low.length){
+    const alertBox=el('div',{class:'card',style:{padding:'12px',borderLeft:'4px solid var(--amber)'}});
+    alertBox.appendChild(el('div',{style:{fontWeight:700,fontSize:'11px',color:'var(--amber)',marginBottom:'4px'},html:`${icon('alert',14,'var(--amber)')} Low Stock (under 500 kg)`}));
+    const badges=el('div',{class:'flex wrap gap6'});
+    low.forEach(i=>{const tot=state.wh.reduce((s,w)=>s+(stock[w.id]?.[i.id]||0),0);badges.appendChild(el('span',{class:'badge',style:{background:'var(--al)',color:'var(--amber)'}},`${i.name}: ${fmt(tot)}`));});
+    alertBox.appendChild(badges);wrap.appendChild(alertBox);
+  }
+
+  // Stock matrix table
+  const tCard=el('div',{class:'card'});
+  tCard.appendChild(el('div',{style:{padding:'11px 12px',borderBottom:'1px solid var(--border)',fontWeight:700,fontSize:'14px'}},'Live Stock'));
+  const tw=el('div',{class:'ova'});
+  const table=el('table');
+  const thead=el('thead');const hr=el('tr');
+  hr.appendChild(el('th',{class:'sticky',style:{minWidth:'90px'}},'Item'));
+  state.wh.forEach(w=>hr.appendChild(el('th',{style:{minWidth:'80px',color:w.color}},w.name)));
+  hr.appendChild(el('th',{style:{minWidth:'70px'}},'Total'));
+  thead.appendChild(hr);table.appendChild(thead);
+
+  const tbody=el('tbody');
+  state.items.forEach(item=>{
+    const tr=el('tr');
+    tr.appendChild(el('td',{class:'sticky',style:{fontWeight:600}},`${item.name} `,el('span',{style:{fontSize:'10px',color:'var(--t2)'}},`(${item.unit})`)));
+    let tot=0;
+    state.wh.forEach(w=>{const v=stock[w.id]?.[item.id]||0;tot+=v;tr.appendChild(el('td',{class:`sn ${v<0?'neg':v===0?'zero':''}`},fmt(v)));});
+    tr.appendChild(el('td',{class:'sn',style:{fontWeight:700,color:tot<0?'var(--red)':'var(--navy)'}},fmt(tot)));
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);tw.appendChild(table);tCard.appendChild(tw);wrap.appendChild(tCard);
+
+  // Warehouse cards
+  const whGrid=el('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:'10px'}});
+  state.wh.forEach(w=>{
+    const c=el('div',{class:'card',style:{borderTop:`3px solid ${w.color}`}});
+    c.appendChild(el('div',{style:{padding:'10px 12px 6px',fontWeight:700,fontSize:'13px',color:w.color},html:`${icon('warehouse',15,w.color)} ${w.name}`}));
+    const body=el('div',{style:{padding:'0 12px 10px'}});
+    const wi=state.items.map(i=>({...i,val:stock[w.id]?.[i.id]||0})).filter(i=>i.val!==0);
+    if(!wi.length){body.appendChild(el('div',{style:{fontSize:'12px',color:'var(--t2)',fontStyle:'italic',padding:'4px 0'}},'No stock'));}
+    else{
+      const mx=Math.max(...wi.map(i=>Math.abs(i.val)),1);
+      wi.forEach(i=>{
+        const row=el('div',{class:'flex ac gap6',style:{marginBottom:'4px'}});
+        row.appendChild(el('div',{style:{width:'70px',fontSize:'11px',fontWeight:500,flexShrink:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},i.name));
+        const bar=el('div',{style:{flex:1,height:'4px',borderRadius:'2px',background:'var(--bg)'}});
+        bar.appendChild(el('div',{style:{width:`${Math.min((Math.abs(i.val)/mx)*100,100)}%`,height:'100%',borderRadius:'2px',background:i.val<0?'var(--red)':w.color}}));
+        row.appendChild(bar);
+        row.appendChild(el('div',{class:'sn',style:{fontSize:'11px',minWidth:'45px',textAlign:'right',color:i.val<0?'var(--red)':'inherit'}},fmt(i.val)));
+        body.appendChild(row);
+      });
+    }
+    c.appendChild(body);whGrid.appendChild(c);
+  });
+  wrap.appendChild(whGrid);
+  return wrap;
+}
+
+// ═══════════════════════════════════════════
+// ENTRY (Stock In / Out) — BULK + PACKING
+// ═══════════════════════════════════════════
+let entryState={type:'in',whId:'',date:today(),party:'',vehicle:'',note:'',lines:[{id:uid(),itemId:'',pkgSize:'',pkgCount:'',qty:''}]};
+
+function renderEntry(){
+  if(!entryState.whId&&state.wh.length) entryState.whId=state.wh[0].id;
+  if(entryState.lines[0]&&!entryState.lines[0].itemId&&state.items.length) entryState.lines.forEach(l=>{if(!l.itemId)l.itemId=state.items[0].id;});
+
+  const wrap=el('div',{style:{maxWidth:'580px',margin:'0 auto'}});
+  const card=el('div',{class:'card',style:{overflow:'hidden'}});
+
+  // Type toggle
+  const toggle=el('div',{class:'flex'});
+  ['in','out'].forEach(t=>{
+    toggle.appendChild(el('button',{style:{flex:1,padding:'13px',border:'none',cursor:'pointer',fontWeight:800,fontSize:'14px',
+      background:entryState.type===t?(t==='in'?'var(--green)':'var(--red)'):'var(--bg)',
+      color:entryState.type===t?'#fff':'var(--t2)'},
+      onClick:()=>{entryState.type=t;render();}
+    },el('span',{html:icon(t==='in'?'plus':'minus',17)}),t==='in'?' STOCK IN':' STOCK OUT'));
+  });
+  card.appendChild(toggle);
+
+  const body=el('div',{style:{padding:'16px',display:'flex',flexDirection:'column',gap:'12px'}});
+
+  // Warehouse + Date
+  const r1=el('div',{class:'g2s'});
+  r1.appendChild(fieldSelect('Warehouse',entryState.whId,state.wh.map(w=>({v:w.id,l:w.name})),v=>{entryState.whId=v;}));
+  r1.appendChild(fieldDate('Date',entryState.date,v=>{entryState.date=v;}));
+  body.appendChild(r1);
+
+  // Items header
+  const itemHeader=el('div',{class:'flex ac jb mb8'});
+  itemHeader.appendChild(el('div',{class:'lbl',style:{margin:0}},'Items'));
+  itemHeader.appendChild(el('button',{class:'btn bp',style:{padding:'3px 10px',fontSize:'11px'},onClick:()=>{
+    entryState.lines.push({id:uid(),itemId:state.items[0]?.id||'',pkgSize:'',pkgCount:'',qty:''});render();
+  }},el('span',{html:icon('plus',12)}),' Add Row'));
+  body.appendChild(itemHeader);
+
+  // Line items
+  entryState.lines.forEach((line,idx)=>{
+    const li=el('div',{class:'line-item'});
+    // Header with # and remove
+    const lh=el('div',{class:'flex ac jb mb6'});
+    lh.appendChild(el('span',{style:{fontSize:'10px',fontWeight:700,color:'var(--t2)'}},`#${idx+1}`));
+    if(entryState.lines.length>1) lh.appendChild(el('button',{class:'icon-btn',style:{color:'var(--red)'},onClick:()=>{entryState.lines.splice(idx,1);render();}},el('span',{html:icon('x',13)})));
+    li.appendChild(lh);
+
+    // Item select
+    const sel=el('select',{class:'inp',style:{marginBottom:'7px',fontSize:'13px'},value:line.itemId,onChange:e=>{line.itemId=e.target.value;}});
+    state.items.forEach(i=>sel.appendChild(el('option',{value:i.id,selected:i.id===line.itemId?true:undefined},`${i.name} (${i.unit})`)));
+    li.appendChild(sel);
+
+    // Packing row
+    const pkRow=el('div',{class:'g3'});
+    pkRow.appendChild(fieldNum('PKG SIZE',line.pkgSize,'180',v=>{line.pkgSize=v;autoCalc(line);render();}));
+    pkRow.appendChild(fieldNum('NO. PKGS',line.pkgCount,'28',v=>{line.pkgCount=v;autoCalc(line);render();}));
+
+    const qtyField=el('div');
+    qtyField.appendChild(el('div',{style:{fontSize:'9px',color:'var(--t2)',fontWeight:700,marginBottom:'2px'}},'TOTAL QTY'));
+    const qInp=el('input',{class:'inp',type:'number',value:line.qty,placeholder:'Auto',style:{fontSize:'13px',padding:'7px',fontWeight:700,
+      background:(parseFloat(line.pkgSize)>0&&parseFloat(line.pkgCount)>0)?'var(--gl)':'var(--card)'},
+      onInput:e=>{line.qty=e.target.value;}});
+    qtyField.appendChild(qInp);
+    pkRow.appendChild(qtyField);
+    li.appendChild(pkRow);
+
+    if(parseFloat(line.pkgSize)>0&&parseFloat(line.pkgCount)>0){
+      li.appendChild(el('div',{style:{fontSize:'10px',color:'var(--green)',marginTop:'3px',fontWeight:600}},
+        `${line.pkgCount} × ${line.pkgSize} = ${fmt(parseFloat(line.pkgSize)*parseFloat(line.pkgCount))}`));
+    }
+    body.appendChild(li);
+  });
+
+  // Party + Vehicle
+  const r2=el('div',{class:'g2s'});
+  r2.appendChild(fieldText('Party',entryState.party,'Optional',v=>{entryState.party=v;}));
+  r2.appendChild(fieldText('Vehicle No.',entryState.vehicle,'Optional',v=>{entryState.vehicle=v;}));
+  body.appendChild(r2);
+  body.appendChild(fieldText('Note / Invoice',entryState.note,'Optional',v=>{entryState.note=v;}));
+
+  // Submit
+  const submitBtn=el('button',{class:`btn ${entryState.type==='in'?'bs':'bd'} w100`,style:{justifyContent:'center',padding:'13px',fontSize:'15px'},
+    onClick:async()=>{
+      const valid=entryState.lines.filter(l=>parseFloat(l.qty)>0);
+      if(!valid.length){toast('Enter at least one item with quantity','error');return;}
+      const newTxns=valid.map(l=>({id:uid(),type:entryState.type,whId:entryState.whId,itemId:l.itemId,
+        pkgSize:parseFloat(l.pkgSize)||null,pkgCount:parseFloat(l.pkgCount)||null,
+        qty:parseFloat(l.qty),unit:iUnit(l.itemId),party:entryState.party,vehicle:entryState.vehicle,
+        note:entryState.note,date:entryState.date,enteredBy:state.user,ts:new Date().toISOString()}));
+      save('txns',[...state.txns,...newTxns]);
+      const res=await apiPost({action:'addBulkTransactions',transactions:newTxns});
+      toast(`${valid.length} item(s) ${entryState.type==='in'?'received':'dispatched'}${res?.success?' — synced':''}`);
+      entryState.lines=[{id:uid(),itemId:state.items[0]?.id||'',pkgSize:'',pkgCount:'',qty:''}];
+      entryState.party='';entryState.vehicle='';entryState.note='';
+      render();
+    }
+  },el('span',{html:icon('check',17)}),` Record ${entryState.lines.length} item(s)`);
+  body.appendChild(submitBtn);
+  card.appendChild(body);wrap.appendChild(card);
+  return wrap;
+}
+
+function autoCalc(line){
+  const ps=parseFloat(line.pkgSize)||0,pc=parseFloat(line.pkgCount)||0;
+  if(ps>0&&pc>0) line.qty=String(ps*pc);
+}
+
+// ═══════════════════════════════════════════
+// TRANSFER
+// ═══════════════════════════════════════════
+let xferState={fromWh:'',toWh:'',itemId:'',pkgSize:'',pkgCount:'',qty:'',note:'',vehicle:''};
+
+function renderTransfer(){
+  if(!xferState.fromWh&&state.wh.length){xferState.fromWh=state.wh[0].id;xferState.toWh=state.wh[1]?.id||state.wh[0].id;}
+  if(!xferState.itemId&&state.items.length) xferState.itemId=state.items[0].id;
+  const stock=getStock();
+  const avail=stock[xferState.fromWh]?.[xferState.itemId]||0;
+
+  const wrap=el('div',{style:{maxWidth:'520px',margin:'0 auto'}});
+  const card=el('div',{class:'card',style:{overflow:'hidden'}});
+  card.appendChild(el('div',{style:{padding:'13px 16px',background:'var(--navy)',color:'#fff',fontWeight:700,fontSize:'15px'},html:`${icon('transfer',17)} Transfer Stock`}));
+
+  const body=el('div',{style:{padding:'16px',display:'flex',flexDirection:'column',gap:'12px'}});
+
+  // From → To
+  const ft=el('div',{style:{display:'grid',gridTemplateColumns:'1fr auto 1fr',gap:'8px',alignItems:'end'}});
+  ft.appendChild(fieldSelect('From',xferState.fromWh,state.wh.map(w=>({v:w.id,l:w.name})),v=>{xferState.fromWh=v;render();}));
+  ft.appendChild(el('div',{style:{padding:'8px 0',color:'var(--t2)',fontSize:'18px'}},'→'));
+  ft.appendChild(fieldSelect('To',xferState.toWh,state.wh.map(w=>({v:w.id,l:w.name})),v=>{xferState.toWh=v;}));
+  body.appendChild(ft);
+
+  const iSel=fieldSelect('Item',xferState.itemId,state.items.map(i=>({v:i.id,l:i.name})),v=>{xferState.itemId=v;render();});
+  iSel.appendChild(el('div',{style:{fontSize:'11px',color:avail>0?'var(--green)':'var(--red)',marginTop:'3px',fontWeight:600}},`Available: ${fmt(avail)}`));
+  body.appendChild(iSel);
+
+  const r3=el('div',{class:'g3'});
+  r3.appendChild(fieldNum('Pkg Size',xferState.pkgSize,'180',v=>{xferState.pkgSize=v;const ps=parseFloat(v)||0,pc=parseFloat(xferState.pkgCount)||0;if(ps>0&&pc>0)xferState.qty=String(ps*pc);render();}));
+  r3.appendChild(fieldNum('No. Pkgs',xferState.pkgCount,'10',v=>{xferState.pkgCount=v;const ps=parseFloat(xferState.pkgSize)||0,pc=parseFloat(v)||0;if(ps>0&&pc>0)xferState.qty=String(ps*pc);render();}));
+  r3.appendChild(fieldNum('Total Qty',xferState.qty,'',v=>{xferState.qty=v;},700));
+  body.appendChild(r3);
+
+  const r2=el('div',{class:'g2s'});
+  r2.appendChild(fieldText('Vehicle',xferState.vehicle,'Optional',v=>{xferState.vehicle=v;}));
+  r2.appendChild(fieldText('Note',xferState.note,'Optional',v=>{xferState.note=v;}));
+  body.appendChild(r2);
+
+  body.appendChild(el('button',{class:'btn bp w100',style:{justifyContent:'center',padding:'13px',fontSize:'15px'},
+    onClick:async()=>{
+      const q=parseFloat(xferState.qty);
+      if(!q||q<=0){toast('Enter quantity','error');return;}
+      if(xferState.fromWh===xferState.toWh){toast('Source ≠ destination','error');return;}
+      if(q>avail){toast(`Only ${fmt(avail)} available`,'error');return;}
+      const txn={id:uid(),type:'transfer',whId:xferState.fromWh,toWhId:xferState.toWh,itemId:xferState.itemId,qty:q,
+        pkgSize:parseFloat(xferState.pkgSize)||null,pkgCount:parseFloat(xferState.pkgCount)||null,
+        unit:iUnit(xferState.itemId),note:xferState.note,vehicle:xferState.vehicle,date:today(),enteredBy:state.user,ts:new Date().toISOString()};
+      save('txns',[...state.txns,txn]);
+      await apiPost({action:'addTransaction',...txn});
+      toast(`Transferred ${fmt(q)} ${iName(xferState.itemId)}`);
+      xferState.qty='';xferState.pkgSize='';xferState.pkgCount='';xferState.note='';xferState.vehicle='';render();
+    }
+  },el('span',{html:icon('transfer',17)}),' Execute Transfer'));
+
+  card.appendChild(body);wrap.appendChild(card);return wrap;
+}
+
+// ═══════════════════════════════════════════
+// HISTORY
+// ═══════════════════════════════════════════
+let histState={search:'',fType:'all',fWh:'all'};
+
+function renderHistory(){
+  const wrap=el('div');
+  // Filters
+  const filters=el('div',{class:'flex wrap gap6 mb10'});
+  const searchInp=el('input',{class:'inp',placeholder:'Search...',value:histState.search,style:{flex:'1 1 140px'},
+    onInput:e=>{histState.search=e.target.value;render();}});
+  filters.appendChild(searchInp);
+
+  const typeSel=el('select',{class:'inp',style:{width:'auto',minWidth:'90px'},onChange:e=>{histState.fType=e.target.value;render();}});
+  [{v:'all',l:'All'},{v:'in',l:'In'},{v:'out',l:'Out'},{v:'transfer',l:'Transfer'}].forEach(o=>{
+    typeSel.appendChild(el('option',{value:o.v,selected:o.v===histState.fType?true:undefined},o.l));
+  });
+  filters.appendChild(typeSel);
+
+  const whSel=el('select',{class:'inp',style:{width:'auto',minWidth:'110px'},onChange:e=>{histState.fWh=e.target.value;render();}});
+  whSel.appendChild(el('option',{value:'all'},'All Warehouses'));
+  state.wh.forEach(w=>whSel.appendChild(el('option',{value:w.id,selected:w.id===histState.fWh?true:undefined},w.name)));
+  filters.appendChild(whSel);
+
+  filters.appendChild(el('button',{class:'btn bg',style:{fontSize:'11px'},onClick:()=>{
+    const h=['Date','Type','Warehouse','To','Item','Pkg','Pkgs','Qty','Party','Vehicle','Note','By'];
+    const r=[...state.txns].reverse().map(t=>[t.date,t.type.toUpperCase(),wName(t.whId),t.toWhId?wName(t.toWhId):'',iName(t.itemId),t.pkgSize||'',t.pkgCount||'',t.qty,t.party||'',t.vehicle||'',t.note||'',t.enteredBy||'']);
+    dlCSV(h,r,`KOPL_Log_${today()}.csv`);toast('Exported');
+  }},el('span',{html:icon('download',13)}),' CSV'));
+  wrap.appendChild(filters);
+
+  // Filter txns
+  const filtered=[...state.txns].reverse().filter(t=>{
+    if(histState.fType!=='all'&&t.type!==histState.fType) return false;
+    if(histState.fWh!=='all'&&t.whId!==histState.fWh&&t.toWhId!==histState.fWh) return false;
+    if(histState.search){
+      const s=histState.search.toLowerCase();
+      return [iName(t.itemId),wName(t.whId),t.party||'',t.note||'',t.vehicle||'',t.enteredBy||''].some(x=>x.toLowerCase().includes(s));
+    }
+    return true;
+  });
+
+  const card=el('div',{class:'card'});
+  if(!filtered.length){
+    card.appendChild(el('div',{style:{padding:'36px',textAlign:'center',color:'var(--t2)'}},state.txns.length?'No matches.':'No transactions yet.'));
+  } else {
+    const tw=el('div',{class:'ova'});
+    const table=el('table');
+    const thead=el('thead');const hr=el('tr');
+    ['Date','Type','Warehouse','Item','Packing','Qty','Party','By',''].forEach((h,i)=>{
+      hr.appendChild(el('th',{class:[4,6,7].includes(i)?'hsm':'',style:i===8?{width:'60px'}:{}},h));
+    });
+    thead.appendChild(hr);table.appendChild(thead);
+
+    const tbody=el('tbody');
+    filtered.forEach(t=>{
+      const tr=el('tr');
+      tr.appendChild(el('td',{style:{fontFamily:'var(--mono)',fontSize:'11px',whiteSpace:'nowrap'}},t.date));
+      const typeBadge=el('span',{class:'badge',style:{
+        background:t.type==='in'?'var(--gl)':t.type==='out'?'var(--rl)':'var(--bl)',
+        color:t.type==='in'?'var(--green)':t.type==='out'?'var(--red)':'var(--navy)'}},t.type==='transfer'?'XFER':t.type.toUpperCase());
+      tr.appendChild(el('td',{},typeBadge));
+      const whTd=el('td',{style:{fontSize:'12px'}});
+      whTd.textContent=wName(t.whId);
+      if(t.toWhId) whTd.appendChild(el('span',{style:{color:'var(--t2)'}},' → '+wName(t.toWhId)));
+      tr.appendChild(whTd);
+      tr.appendChild(el('td',{class:'hsm',style:{fontWeight:600}},iName(t.itemId)));
+      tr.appendChild(el('td',{class:'hsm',style:{fontSize:'11px',color:'var(--t2)'}},t.pkgSize&&t.pkgCount?`${t.pkgCount}×${t.pkgSize}`:'—'));
+      tr.appendChild(el('td',{class:'sn'},fmt(t.qty)));
+      tr.appendChild(el('td',{class:'hsm',style:{fontSize:'11px',color:'var(--t2)'}},`${t.party||'—'}${t.vehicle?' · '+t.vehicle:''}`));
+      tr.appendChild(el('td',{class:'hsm',style:{fontSize:'11px',color:'var(--navy)',fontWeight:500}},t.enteredBy||'—'));
+
+      // Actions
+      const acts=el('td');const actDiv=el('div',{class:'flex gap4'});
+      actDiv.appendChild(el('button',{class:'icon-btn',style:{color:'var(--red)'},title:'Delete',
+        onClick:async()=>{
+          if(!confirm('Delete this entry?')) return;
+          save('txns',state.txns.filter(x=>x.id!==t.id));
+          await apiPost({action:'deleteTransaction',id:t.id});
+          toast('Deleted');render();
+        }},el('span',{html:icon('trash',13)})));
+      acts.appendChild(actDiv);tr.appendChild(acts);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);tw.appendChild(table);card.appendChild(tw);
+  }
+  wrap.appendChild(card);return wrap;
+}
+
+// ═══════════════════════════════════════════
+// MANAGE
+// ═══════════════════════════════════════════
+function renderManage(){
+  const wrap=el('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(270px,1fr))',gap:'12px'}});
+
+  // Warehouses
+  const whCard=el('div',{class:'card p16'});
+  whCard.appendChild(el('div',{style:{fontWeight:700,fontSize:'14px',marginBottom:'10px'},html:`${icon('warehouse',15)} Warehouses`}));
+  const whList=el('div',{class:'flex col gap6 mb12'});
+  state.wh.forEach(w=>{
+    const row=el('div',{class:'flex ac gap6',style:{padding:'7px 10px',background:'var(--bg)',borderRadius:'8px',borderLeft:`4px solid ${w.color}`}});
+    row.appendChild(el('span',{style:{flex:1,fontWeight:600,fontSize:'13px'}},w.name));
+    row.appendChild(el('button',{class:'icon-btn',style:{color:'var(--red)'},onClick:async()=>{
+      if(!confirm(`Delete "${w.name}"?`)) return;
+      save('wh',state.wh.filter(x=>x.id!==w.id));await apiPost({action:'deleteWarehouse',id:w.id});toast(w.name+' deleted');render();
+    }},el('span',{html:icon('trash',13)})));
+    whList.appendChild(row);
+  });
+  whCard.appendChild(whList);
+
+  const addWhRow=el('div',{class:'flex gap6'});
+  const whInp=el('input',{class:'inp',placeholder:'New warehouse',style:{flex:1}});
+  const whColor=el('input',{type:'color',value:'#1C3673',style:{width:'36px',height:'36px',border:'none',borderRadius:'8px',cursor:'pointer'}});
+  addWhRow.appendChild(whInp);addWhRow.appendChild(whColor);
+  addWhRow.appendChild(el('button',{class:'btn bp',onClick:async()=>{
+    if(!whInp.value.trim()) return;
+    const nw={id:uid(),name:whInp.value.trim(),color:whColor.value};
+    save('wh',[...state.wh,nw]);await apiPost({action:'addWarehouse',...nw});toast(nw.name+' added');render();
+  }},el('span',{html:icon('plus',13)})));
+  whCard.appendChild(addWhRow);wrap.appendChild(whCard);
+
+  // Items
+  const itCard=el('div',{class:'card p16'});
+  itCard.appendChild(el('div',{style:{fontWeight:700,fontSize:'14px',marginBottom:'10px'},html:`${icon('box',15)} Items`}));
+  const itList=el('div',{class:'flex col',style:{gap:'4px',marginBottom:'12px',maxHeight:'280px',overflowY:'auto'}});
+  state.items.forEach(i=>{
+    const row=el('div',{class:'flex ac gap6',style:{padding:'6px 10px',background:'var(--bg)',borderRadius:'8px'}});
+    row.appendChild(el('span',{style:{flex:1,fontWeight:600,fontSize:'13px'}},i.name));
+    row.appendChild(el('span',{class:'badge',style:{background:'var(--bl)',color:'var(--navy)'}},i.unit));
+    row.appendChild(el('button',{class:'icon-btn',style:{color:'var(--red)'},onClick:async()=>{
+      if(!confirm(`Remove "${i.name}"?`)) return;
+      save('items',state.items.filter(x=>x.id!==i.id));await apiPost({action:'deleteItem',id:i.id});toast(i.name+' removed');render();
+    }},el('span',{html:icon('x',13)})));
+    itList.appendChild(row);
+  });
+  itCard.appendChild(itList);
+
+  const addItRow=el('div',{class:'flex gap6'});
+  const itInp=el('input',{class:'inp',placeholder:'New item',style:{flex:1}});
+  const unitSel=el('select',{class:'inp',style:{width:'65px'}});
+  ['kg','ltr','MT','pcs','drums','bags','cans','tonnes'].forEach(u=>unitSel.appendChild(el('option',{value:u},u)));
+  addItRow.appendChild(itInp);addItRow.appendChild(unitSel);
+  addItRow.appendChild(el('button',{class:'btn bp',onClick:async()=>{
+    if(!itInp.value.trim()) return;
+    const ni={id:uid(),name:itInp.value.trim(),unit:unitSel.value};
+    save('items',[...state.items,ni]);await apiPost({action:'addItem',...ni});toast(ni.name+' added');render();
+  }},el('span',{html:icon('plus',13)})));
+  itCard.appendChild(addItRow);wrap.appendChild(itCard);
+
+  // Info
+  const infoCard=el('div',{class:'card p16',style:{gridColumn:'1/-1'}});
+  infoCard.appendChild(el('div',{style:{fontWeight:700,fontSize:'14px',marginBottom:'10px'}},'Connection & Data'));
+  const infoBody=el('div',{style:{background:'var(--bg)',padding:'12px',borderRadius:'8px',fontSize:'12px',color:'var(--t2)',lineHeight:1.8}});
+  infoBody.innerHTML=`
+    <strong>Google Sheet URL:</strong><br>
+    ${state.url?`<code style="word-break:break-all;font-size:10px">${state.url}</code>`:'Not connected — click "Connect" at the top'}
+    <br><br>
+    <strong>User name:</strong> ${state.user||'Not set'}<br>
+    <strong>Total entries:</strong> ${state.txns.length}<br><br>
+    <strong>To correct mistakes:</strong> Open your Google Sheet directly and edit any row, or delete entries from the Log tab here.
+  `;
+  infoCard.appendChild(infoBody);
+
+  infoCard.appendChild(el('div',{class:'flex gap8 wrap',style:{marginTop:'12px'}},
+    el('button',{class:'btn bg',onClick:showSetupModal},el('span',{html:icon('link',13)}),' Change Connection'),
+    el('button',{class:'btn bd',onClick:()=>{
+      if(!confirm('Delete ALL local transaction data?')) return;
+      if(!confirm('FINAL CONFIRM — cannot undo')) return;
+      save('txns',[]);toast('Cleared');render();
+    }},el('span',{html:icon('trash',13)}),' Reset Local Data')
+  ));
+  wrap.appendChild(infoCard);
+  return wrap;
+}
+
+// ═══════════════════════════════════════════
+// SETUP / CONNECT MODAL
+// ═══════════════════════════════════════════
+function renderSetup(){
+  return buildSetupUI(true);
+}
+
+function showSetupModal(){
+  const existing=$('.overlay');if(existing) existing.remove();
+  const overlay=el('div',{class:'overlay',onClick:e=>{if(e.target===overlay){overlay.remove();state._skipSetup=true;render();}}});
+  overlay.appendChild(buildSetupUI(false));
+  document.body.appendChild(overlay);
+}
+
+function buildSetupUI(isFullPage){
+  const container=el('div',{class:isFullPage?'':'modal',style:isFullPage?{maxWidth:'620px',margin:'40px auto',padding:'24px'}:{}});
+
+  const header=el('div',{class:'flex ac jb mb14'});
+  header.appendChild(el('div',{style:{fontWeight:800,fontSize:'18px',color:'var(--navy)'}},'KOPL Inventory Setup'));
+  if(!isFullPage) header.appendChild(el('button',{class:'icon-btn',style:{color:'var(--t2)'},onClick:()=>{$('.overlay')?.remove();state._skipSetup=true;render();}},el('span',{html:icon('x',20)})));
+  container.appendChild(header);
+
+  // User name
+  container.appendChild(el('div',{class:'lbl'},'Your Name'));
+  const nameInp=el('input',{class:'inp mb12',placeholder:'e.g. Parv, Raju, Sunil',value:state.user});
+  container.appendChild(nameInp);
+
+  // URL
+  container.appendChild(el('div',{class:'lbl'},'Google Apps Script Web App URL'));
+  const urlInp=el('input',{class:'inp mb12',placeholder:'https://script.google.com/macros/s/.../exec',value:state.url,style:{fontFamily:'var(--mono)',fontSize:'12px'}});
+  container.appendChild(urlInp);
+
+  // Test result area
+  const resultArea=el('div',{style:{minHeight:'36px',marginBottom:'12px'}});
+  container.appendChild(resultArea);
+
+  // Buttons
+  const btnRow=el('div',{class:'flex gap8 wrap'});
+  btnRow.appendChild(el('button',{class:'btn bg',onClick:async()=>{
+    if(!urlInp.value.trim()){resultArea.innerHTML='<div style="color:var(--red);font-size:12px">Enter a URL first</div>';return;}
+    resultArea.innerHTML='<div style="color:var(--t2);font-size:12px">Testing connection...</div>';
+    try{
+      const r=await fetch(urlInp.value.trim()+'?action=getAll');const d=await r.json();
+      if(d&&d.success) resultArea.innerHTML=`<div style="color:var(--green);font-size:12px;font-weight:600">✅ Connected! Found ${d.warehouses?.length||0} warehouses, ${d.items?.length||0} items, ${d.transactions?.length||0} entries.</div>`;
+      else resultArea.innerHTML=`<div style="color:var(--red);font-size:12px">${d?.error||'Connection failed. Check URL and deployment settings.'}</div>`;
+    }catch(e){resultArea.innerHTML='<div style="color:var(--red);font-size:12px">Could not connect. Make sure "Who has access" is set to "Anyone".</div>';}
+  }},'Test Connection'));
+
+  btnRow.appendChild(el('button',{class:'btn bs',style:{flex:1},onClick:async()=>{
+    save('url',urlInp.value.trim());
+    save('user',nameInp.value.trim());
+    state._skipSetup=true;
+    $('.overlay')?.remove();
+    if(state.url) await syncFromSheet();
+    toast('Connected!');render();
+  }},el('span',{html:icon('check',16)}),' Save & Connect'));
+  container.appendChild(btnRow);
+
+  // Skip
+  if(isFullPage){
+    container.appendChild(el('div',{style:{marginTop:'12px',textAlign:'center'}},
+      el('button',{class:'btn bg',onClick:()=>{state._skipSetup=true;render();}},'Skip — use offline without Google Sheets')
+    ));
+  }
+
+  // Help text
+  container.appendChild(el('div',{style:{marginTop:'16px',background:'var(--bg)',padding:'14px',borderRadius:'8px',fontSize:'12px',color:'var(--t2)',lineHeight:1.8},
+    html:`<strong>Don't have the URL yet?</strong><br>
+    1. Create a Google Sheet → Extensions → Apps Script<br>
+    2. Paste the KOPL script code → Run <code>initializeSheets</code><br>
+    3. Deploy → New Deployment → Web App → Anyone → Deploy<br>
+    4. Copy the URL and paste it above<br><br>
+    See the full Setup Guide for detailed instructions.`
+  }));
+
+  return container;
+}
+
+// ═══════════════════════════════════════════
+// FIELD HELPERS
+// ═══════════════════════════════════════════
+function fieldText(label,value,placeholder,onChange){
+  const d=el('div');
+  d.appendChild(el('div',{class:'lbl'},label));
+  d.appendChild(el('input',{class:'inp',value:value||'',placeholder:placeholder||'',onInput:e=>onChange(e.target.value)}));
+  return d;
+}
+function fieldNum(label,value,placeholder,onChange,fw){
+  const d=el('div');
+  d.appendChild(el('div',{style:{fontSize:'9px',color:'var(--t2)',fontWeight:700,marginBottom:'2px'}},label));
+  d.appendChild(el('input',{class:'inp',type:'number',value:value||'',placeholder:placeholder||'',
+    style:{fontSize:'13px',padding:'7px',fontWeight:fw||400},onInput:e=>onChange(e.target.value)}));
+  return d;
+}
+function fieldDate(label,value,onChange){
+  const d=el('div');
+  d.appendChild(el('div',{class:'lbl'},label));
+  d.appendChild(el('input',{class:'inp',type:'date',value:value,onChange:e=>onChange(e.target.value)}));
+  return d;
+}
+function fieldSelect(label,value,options,onChange){
+  const d=el('div');
+  d.appendChild(el('div',{class:'lbl'},label));
+  const sel=el('select',{class:'inp',onChange:e=>onChange(e.target.value)});
+  options.forEach(o=>sel.appendChild(el('option',{value:o.v,selected:o.v===value?true:undefined},o.l)));
+  d.appendChild(sel);return d;
+}
+
+// ─── Initial Render ───
+render();
+if(state.url) syncFromSheet();
+</script>
+</body>
+</html>
