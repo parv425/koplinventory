@@ -394,38 +394,67 @@ function renderEntry(){
   }},el('span',{html:icon('plus',12)}),' Add Row'));
   body.appendChild(itemHeader);
 
-  // Line items
+  // Line items — NO full re-render on typing, only local DOM updates
   entryState.lines.forEach((line,idx)=>{
     const li=el('div',{class:'line-item'});
-    // Header with # and remove
     const lh=el('div',{class:'flex ac jb mb6'});
     lh.appendChild(el('span',{style:{fontSize:'10px',fontWeight:700,color:'var(--t2)'}},`#${idx+1}`));
     if(entryState.lines.length>1) lh.appendChild(el('button',{class:'icon-btn',style:{color:'var(--red)'},onClick:()=>{entryState.lines.splice(idx,1);render();}},el('span',{html:icon('x',13)})));
     li.appendChild(lh);
 
-    // Item select
     const sel=el('select',{class:'inp',style:{marginBottom:'7px',fontSize:'13px'},value:line.itemId,onChange:e=>{line.itemId=e.target.value;}});
     state.items.forEach(i=>sel.appendChild(el('option',{value:i.id,selected:i.id===line.itemId?true:undefined},`${i.name} (${i.unit})`)));
     li.appendChild(sel);
 
-    // Packing row
+    // Packing row — local-only updates, no render()
     const pkRow=el('div',{class:'g3'});
-    pkRow.appendChild(fieldNum('PKG SIZE',line.pkgSize,'180',v=>{line.pkgSize=v;autoCalc(line);render();}));
-    pkRow.appendChild(fieldNum('NO. PKGS',line.pkgCount,'28',v=>{line.pkgCount=v;autoCalc(line);render();}));
 
-    const qtyField=el('div');
-    qtyField.appendChild(el('div',{style:{fontSize:'9px',color:'var(--t2)',fontWeight:700,marginBottom:'2px'}},'TOTAL QTY'));
+    // Total qty input (created first so pkg fields can reference it)
     const qInp=el('input',{class:'inp',type:'number',value:line.qty,placeholder:'Auto',style:{fontSize:'13px',padding:'7px',fontWeight:700,
       background:(parseFloat(line.pkgSize)>0&&parseFloat(line.pkgCount)>0)?'var(--gl)':'var(--card)'},
       onInput:e=>{line.qty=e.target.value;}});
+
+    // Calc hint line (created early so pkg fields can update it)
+    const calcHint=el('div',{style:{fontSize:'10px',color:'var(--green)',marginTop:'3px',fontWeight:600}});
+    function updateCalc(){
+      const ps=parseFloat(line.pkgSize)||0, pc=parseFloat(line.pkgCount)||0;
+      if(ps>0&&pc>0){
+        line.qty=String(ps*pc);
+        qInp.value=line.qty;
+        qInp.style.background='var(--gl)';
+        calcHint.textContent=`${line.pkgCount} × ${line.pkgSize} = ${fmt(ps*pc)}`;
+      } else {
+        qInp.style.background='var(--card)';
+        calcHint.textContent='';
+      }
+    }
+
+    // PKG SIZE
+    const psField=el('div');
+    psField.appendChild(el('div',{style:{fontSize:'9px',color:'var(--t2)',fontWeight:700,marginBottom:'2px'}},'PKG SIZE'));
+    psField.appendChild(el('input',{class:'inp',type:'number',value:line.pkgSize||'',placeholder:'180',
+      style:{fontSize:'13px',padding:'7px'},
+      onInput:e=>{line.pkgSize=e.target.value;updateCalc();}}));
+    pkRow.appendChild(psField);
+
+    // NO. PKGS
+    const pcField=el('div');
+    pcField.appendChild(el('div',{style:{fontSize:'9px',color:'var(--t2)',fontWeight:700,marginBottom:'2px'}},'NO. PKGS'));
+    pcField.appendChild(el('input',{class:'inp',type:'number',value:line.pkgCount||'',placeholder:'28',
+      style:{fontSize:'13px',padding:'7px'},
+      onInput:e=>{line.pkgCount=e.target.value;updateCalc();}}));
+    pkRow.appendChild(pcField);
+
+    // TOTAL QTY
+    const qtyField=el('div');
+    qtyField.appendChild(el('div',{style:{fontSize:'9px',color:'var(--t2)',fontWeight:700,marginBottom:'2px'}},'TOTAL QTY'));
     qtyField.appendChild(qInp);
     pkRow.appendChild(qtyField);
-    li.appendChild(pkRow);
 
-    if(parseFloat(line.pkgSize)>0&&parseFloat(line.pkgCount)>0){
-      li.appendChild(el('div',{style:{fontSize:'10px',color:'var(--green)',marginTop:'3px',fontWeight:600}},
-        `${line.pkgCount} × ${line.pkgSize} = ${fmt(parseFloat(line.pkgSize)*parseFloat(line.pkgCount))}`));
-    }
+    li.appendChild(pkRow);
+    // Initial calc hint
+    updateCalc();
+    li.appendChild(calcHint);
     body.appendChild(li);
   });
 
@@ -492,9 +521,32 @@ function renderTransfer(){
   body.appendChild(iSel);
 
   const r3=el('div',{class:'g3'});
-  r3.appendChild(fieldNum('Pkg Size',xferState.pkgSize,'180',v=>{xferState.pkgSize=v;const ps=parseFloat(v)||0,pc=parseFloat(xferState.pkgCount)||0;if(ps>0&&pc>0)xferState.qty=String(ps*pc);render();}));
-  r3.appendChild(fieldNum('No. Pkgs',xferState.pkgCount,'10',v=>{xferState.pkgCount=v;const ps=parseFloat(xferState.pkgSize)||0,pc=parseFloat(v)||0;if(ps>0&&pc>0)xferState.qty=String(ps*pc);render();}));
-  r3.appendChild(fieldNum('Total Qty',xferState.qty,'',v=>{xferState.qty=v;},700));
+
+  // Transfer qty input (created first so pkg fields can reference it)
+  const xQtyInp=el('input',{class:'inp',type:'number',value:xferState.qty||'',placeholder:'',
+    style:{fontSize:'13px',padding:'7px',fontWeight:700},onInput:e=>{xferState.qty=e.target.value;}});
+
+  function xferCalc(){
+    const ps=parseFloat(xferState.pkgSize)||0, pc=parseFloat(xferState.pkgCount)||0;
+    if(ps>0&&pc>0){ xferState.qty=String(ps*pc); xQtyInp.value=xferState.qty; }
+  }
+
+  const xpsF=el('div');
+  xpsF.appendChild(el('div',{style:{fontSize:'9px',color:'var(--t2)',fontWeight:700,marginBottom:'2px'}},'PKG SIZE'));
+  xpsF.appendChild(el('input',{class:'inp',type:'number',value:xferState.pkgSize||'',placeholder:'180',
+    style:{fontSize:'13px',padding:'7px'},onInput:e=>{xferState.pkgSize=e.target.value;xferCalc();}}));
+  r3.appendChild(xpsF);
+
+  const xpcF=el('div');
+  xpcF.appendChild(el('div',{style:{fontSize:'9px',color:'var(--t2)',fontWeight:700,marginBottom:'2px'}},'NO. PKGS'));
+  xpcF.appendChild(el('input',{class:'inp',type:'number',value:xferState.pkgCount||'',placeholder:'10',
+    style:{fontSize:'13px',padding:'7px'},onInput:e=>{xferState.pkgCount=e.target.value;xferCalc();}}));
+  r3.appendChild(xpcF);
+
+  const xqF=el('div');
+  xqF.appendChild(el('div',{style:{fontSize:'9px',color:'var(--t2)',fontWeight:700,marginBottom:'2px'}},'TOTAL QTY'));
+  xqF.appendChild(xQtyInp);
+  r3.appendChild(xqF);
   body.appendChild(r3);
 
   const r2=el('div',{class:'g2s'});
